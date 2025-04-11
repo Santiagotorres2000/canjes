@@ -1,9 +1,10 @@
+// src/lib/api.ts
 import { toast } from "sonner";
 
-// Update the API URL to match your backend server
+// Define la URL base de la API (asegúrate de que termina en "/api/")
 const API_URL = "http://localhost:5121/api/";
 
-// Add debugging to see what's happening with API calls
+// Función de fetch con logging para ver el proceso
 const fetchWithLogging = async (url: string, options?: RequestInit) => {
   console.log(`Fetching: ${url}`);
   try {
@@ -20,12 +21,12 @@ const fetchWithLogging = async (url: string, options?: RequestInit) => {
     console.log("Response data:", data);
     return data;
   } catch (error) {
-    console.error(`Fetch error:`, error);
+    console.error("Fetch error:", error);
     throw error;
   }
 };
 
-// Types based on your SQL tables
+// Tipos basados en tus tablas SQL
 export interface Empresa {
   idEmpresa?: number;
   nombre: string;
@@ -99,12 +100,12 @@ export interface Recoleccion {
   residuo?: Residuo;
 }
 
-// Generic API functions with improved error handling
+// Funciones genéricas para el manejo de la API
 async function fetchData<T>(endpoint: string): Promise<T[]> {
   try {
     console.log(`Fetching data from ${API_URL}${endpoint}`);
-    const response = await fetchWithLogging(`${API_URL}${endpoint}`);
-    return response;
+    const data = await fetchWithLogging(`${API_URL}${endpoint}`);
+    return data;
   } catch (error) {
     console.error(`Failed to fetch ${endpoint}:`, error);
     toast.error(`Error al cargar datos: ${(error as Error).message}`);
@@ -114,8 +115,8 @@ async function fetchData<T>(endpoint: string): Promise<T[]> {
 
 async function fetchById<T>(endpoint: string, id: number): Promise<T | null> {
   try {
-    const response = await fetchWithLogging(`${API_URL}${endpoint}/${id}`);
-    return response;
+    const data = await fetchWithLogging(`${API_URL}${endpoint}/${id}`);
+    return data;
   } catch (error) {
     console.error(`Failed to fetch ${endpoint}/${id}:`, error);
     toast.error(`Error al cargar datos: ${(error as Error).message}`);
@@ -125,7 +126,7 @@ async function fetchById<T>(endpoint: string, id: number): Promise<T | null> {
 
 async function createData<T>(endpoint: string, data: T): Promise<T | null> {
   try {
-    const response = await fetchWithLogging(`${API_URL}${endpoint}`, {
+    const responseData = await fetchWithLogging(`${API_URL}${endpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -133,7 +134,7 @@ async function createData<T>(endpoint: string, data: T): Promise<T | null> {
       body: JSON.stringify(data),
     });
     toast.success("Registro creado exitosamente");
-    return response;
+    return responseData;
   } catch (error) {
     console.error(`Failed to create ${endpoint}:`, error);
     toast.error(`Error al crear registro: ${(error as Error).message}`);
@@ -143,7 +144,7 @@ async function createData<T>(endpoint: string, data: T): Promise<T | null> {
 
 async function updateData<T>(endpoint: string, id: number, data: T): Promise<T | null> {
   try {
-    const response = await fetchWithLogging(`${API_URL}${endpoint}/${id}`, {
+    const responseData = await fetchWithLogging(`${API_URL}${endpoint}/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -151,7 +152,7 @@ async function updateData<T>(endpoint: string, id: number, data: T): Promise<T |
       body: JSON.stringify(data),
     });
     toast.success("Registro actualizado exitosamente");
-    return response;
+    return responseData;
   } catch (error) {
     console.error(`Failed to update ${endpoint}/${id}:`, error);
     toast.error(`Error al actualizar registro: ${(error as Error).message}`);
@@ -173,7 +174,8 @@ async function deleteData(endpoint: string, id: number): Promise<boolean> {
   }
 }
 
-// Specific API functions for each entity
+// Endpoints específicos para cada entidad, siguiendo la convención RESTful
+
 export const empresasApi = {
   getAll: () => fetchData<Empresa>("empresas"),
   getById: (id: number) => fetchById<Empresa>("empresas", id),
