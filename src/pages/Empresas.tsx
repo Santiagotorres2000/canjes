@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -10,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 const Empresas = () => {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
