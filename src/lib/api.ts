@@ -1,51 +1,26 @@
 import { toast } from "sonner";
 
 // Update the API URL to match your backend server
-// If your backend is running on a different port or URL, update this
-const API_URL = "http://localhost:5000/api/";
+const API_URL = "http://localhost:5121/api/";
 
-// Add improved error handling and logging for API calls
+// Add debugging to see what's happening with API calls
 const fetchWithLogging = async (url: string, options?: RequestInit) => {
   console.log(`Fetching: ${url}`);
   try {
-    const response = await fetch(url, {
-      ...options,
-      // Add CORS headers to prevent cross-origin issues
-      headers: {
-        ...(options?.headers || {}),
-        "Content-Type": "application/json",
-      },
-    });
-    
+    const response = await fetch(url, options);
     console.log(`Response status: ${response.status}`);
     
     if (!response.ok) {
-      let errorText;
-      try {
-        errorText = await response.text();
-      } catch (e) {
-        errorText = "Could not parse error response";
-      }
-      
+      const errorText = await response.text();
       console.error(`API Error: ${errorText}`);
       throw new Error(`Error: ${response.statusText} - ${errorText}`);
     }
     
-    // Try to parse JSON, but handle cases where response might not be JSON
-    try {
-      const data = await response.json();
-      console.log("Response data:", data);
-      return data;
-    } catch (error) {
-      console.error("Error parsing JSON response:", error);
-      throw new Error("Invalid JSON response from server");
-    }
+    const data = await response.json();
+    console.log("Response data:", data);
+    return data;
   } catch (error) {
-    console.error(`Fetch error for ${url}:`, error);
-    // Check if it's a network error (like server not running)
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error("Server connection failed. Please check if the backend server is running.");
-    }
+    console.error(`Fetch error:`, error);
     throw error;
   }
 };
@@ -124,7 +99,7 @@ export interface Recoleccion {
   residuo?: Residuo;
 }
 
-// Enhanced generic API functions with better error handling
+// Generic API functions with improved error handling
 async function fetchData<T>(endpoint: string): Promise<T[]> {
   try {
     console.log(`Fetching data from ${API_URL}${endpoint}`);
@@ -132,9 +107,7 @@ async function fetchData<T>(endpoint: string): Promise<T[]> {
     return response;
   } catch (error) {
     console.error(`Failed to fetch ${endpoint}:`, error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    toast.error(`Error al cargar datos: ${errorMessage}`);
-    // Return empty array instead of throwing to prevent UI breaks
+    toast.error(`Error al cargar datos: ${(error as Error).message}`);
     return [];
   }
 }
@@ -145,8 +118,7 @@ async function fetchById<T>(endpoint: string, id: number): Promise<T | null> {
     return response;
   } catch (error) {
     console.error(`Failed to fetch ${endpoint}/${id}:`, error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    toast.error(`Error al cargar datos: ${errorMessage}`);
+    toast.error(`Error al cargar datos: ${(error as Error).message}`);
     return null;
   }
 }
