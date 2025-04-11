@@ -1,6 +1,29 @@
 import { toast } from "sonner";
 
+// Update the API URL to match your backend server
 const API_URL = "http://localhost:5121/api/";
+
+// Add debugging to see what's happening with API calls
+const fetchWithLogging = async (url: string, options?: RequestInit) => {
+  console.log(`Fetching: ${url}`);
+  try {
+    const response = await fetch(url, options);
+    console.log(`Response status: ${response.status}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error: ${errorText}`);
+      throw new Error(`Error: ${response.statusText} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log("Response data:", data);
+    return data;
+  } catch (error) {
+    console.error(`Fetch error:`, error);
+    throw error;
+  }
+};
 
 // Types based on your SQL tables
 export interface Empresa {
@@ -76,14 +99,12 @@ export interface Recoleccion {
   residuo?: Residuo;
 }
 
-// Generic API functions
+// Generic API functions with improved error handling
 async function fetchData<T>(endpoint: string): Promise<T[]> {
   try {
-    const response = await fetch(`${API_URL}${endpoint}`);
-    if (!response.ok) {
-      throw new Error(`Error fetching ${endpoint}: ${response.statusText}`);
-    }
-    return await response.json();
+    console.log(`Fetching data from ${API_URL}${endpoint}`);
+    const response = await fetchWithLogging(`${API_URL}${endpoint}`);
+    return response;
   } catch (error) {
     console.error(`Failed to fetch ${endpoint}:`, error);
     toast.error(`Error al cargar datos: ${(error as Error).message}`);
@@ -93,11 +114,8 @@ async function fetchData<T>(endpoint: string): Promise<T[]> {
 
 async function fetchById<T>(endpoint: string, id: number): Promise<T | null> {
   try {
-    const response = await fetch(`${API_URL}${endpoint}/${id}`);
-    if (!response.ok) {
-      throw new Error(`Error fetching ${endpoint}/${id}: ${response.statusText}`);
-    }
-    return await response.json();
+    const response = await fetchWithLogging(`${API_URL}${endpoint}/${id}`);
+    return response;
   } catch (error) {
     console.error(`Failed to fetch ${endpoint}/${id}:`, error);
     toast.error(`Error al cargar datos: ${(error as Error).message}`);
@@ -107,18 +125,15 @@ async function fetchById<T>(endpoint: string, id: number): Promise<T | null> {
 
 async function createData<T>(endpoint: string, data: T): Promise<T | null> {
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetchWithLogging(`${API_URL}${endpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`Error creating ${endpoint}: ${response.statusText}`);
-    }
     toast.success("Registro creado exitosamente");
-    return await response.json();
+    return response;
   } catch (error) {
     console.error(`Failed to create ${endpoint}:`, error);
     toast.error(`Error al crear registro: ${(error as Error).message}`);
@@ -128,18 +143,15 @@ async function createData<T>(endpoint: string, data: T): Promise<T | null> {
 
 async function updateData<T>(endpoint: string, id: number, data: T): Promise<T | null> {
   try {
-    const response = await fetch(`${API_URL}${endpoint}/${id}`, {
+    const response = await fetchWithLogging(`${API_URL}${endpoint}/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`Error updating ${endpoint}/${id}: ${response.statusText}`);
-    }
     toast.success("Registro actualizado exitosamente");
-    return await response.json();
+    return response;
   } catch (error) {
     console.error(`Failed to update ${endpoint}/${id}:`, error);
     toast.error(`Error al actualizar registro: ${(error as Error).message}`);
@@ -149,12 +161,9 @@ async function updateData<T>(endpoint: string, id: number, data: T): Promise<T |
 
 async function deleteData(endpoint: string, id: number): Promise<boolean> {
   try {
-    const response = await fetch(`${API_URL}${endpoint}/${id}`, {
+    await fetchWithLogging(`${API_URL}${endpoint}/${id}`, {
       method: "DELETE",
     });
-    if (!response.ok) {
-      throw new Error(`Error deleting ${endpoint}/${id}: ${response.statusText}`);
-    }
     toast.success("Registro eliminado exitosamente");
     return true;
   } catch (error) {

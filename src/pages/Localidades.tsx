@@ -19,11 +19,25 @@ const Localidades = () => {
   const [formData, setFormData] = useState<Localidad>({
     nombre: "",
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const localidadesData = await localidadesApi.getAll();
-      setLocalidades(localidadesData);
+      setIsLoading(true);
+      setError(null);
+      try {
+        console.log("Fetching localidades data...");
+        const localidadesData = await localidadesApi.getAll();
+        console.log("Localidades data received:", localidadesData);
+        setLocalidades(localidadesData);
+      } catch (err) {
+        console.error("Error fetching localidades:", err);
+        setError(`Error al cargar datos: ${(err as Error).message}`);
+        toast.error(`Error al cargar datos: ${(err as Error).message}`);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchData();
@@ -122,16 +136,27 @@ const Localidades = () => {
         }}
       />
 
-      <DataTable
-        data={localidades}
-        columns={columns}
-        onAdd={handleAdd}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        getItemId={(localidad) => localidad.idLocalidad || 0}
-        title="Localidades"
-        addButtonText="Nueva Localidad"
-      />
+      {isLoading ? (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Cargando datos...</span>
+        </div>
+      ) : error ? (
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+          {error}
+        </div>
+      ) : (
+        <DataTable
+          data={localidades}
+          columns={columns}
+          onAdd={handleAdd}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          getItemId={(localidad) => localidad.idLocalidad || 0}
+          title="Localidades"
+          addButtonText="Nueva Localidad"
+        />
+      )}
 
       {/* Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

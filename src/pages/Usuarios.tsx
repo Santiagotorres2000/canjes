@@ -27,14 +27,30 @@ const Usuarios = () => {
     rol: "Usuario",
     idLocalidad: undefined,
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const usuariosData = await usuariosApi.getAll();
-      setUsuarios(usuariosData);
+      setIsLoading(true);
+      setError(null);
+      try {
+        console.log("Fetching usuarios data...");
+        const usuariosData = await usuariosApi.getAll();
+        console.log("Usuarios data received:", usuariosData);
+        setUsuarios(usuariosData);
 
-      const localidadesData = await localidadesApi.getAll();
-      setLocalidades(localidadesData);
+        console.log("Fetching localidades data...");
+        const localidadesData = await localidadesApi.getAll();
+        console.log("Localidades data received:", localidadesData);
+        setLocalidades(localidadesData);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError(`Error al cargar datos: ${(err as Error).message}`);
+        toast.error(`Error al cargar datos: ${(err as Error).message}`);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchData();
@@ -176,16 +192,27 @@ const Usuarios = () => {
         }}
       />
 
-      <DataTable
-        data={usuarios}
-        columns={columns}
-        onAdd={handleAdd}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        getItemId={(usuario) => usuario.idUsuario || 0}
-        title="Usuarios"
-        addButtonText="Nuevo Usuario"
-      />
+      {isLoading ? (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Cargando datos...</span>
+        </div>
+      ) : error ? (
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+          {error}
+        </div>
+      ) : (
+        <DataTable
+          data={usuarios}
+          columns={columns}
+          onAdd={handleAdd}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          getItemId={(usuario) => usuario.idUsuario || 0}
+          title="Usuarios"
+          addButtonText="Nuevo Usuario"
+        />
+      )}
 
       {/* Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
