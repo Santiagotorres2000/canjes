@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -103,35 +104,49 @@ const Usuarios = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.nombre || !formData.apellidos || !formData.telefono) {
-      toast.error("Por favor complete los campos obligatorios.");
-      return;
-    }
+    try {
+      if (!formData.nombre || !formData.apellidos || !formData.telefono) {
+        toast.error("Por favor complete los campos obligatorios.");
+        return;
+      }
 
-    let result;
-    if (currentUsuario?.idUsuario) {
-      result = await usuariosApi.update(currentUsuario.idUsuario, formData);
+      // Make a copy of the form data to avoid issues with undefined fields
+      const dataToSubmit = { ...formData };
+      
+      // Verify idLocalidad is properly formatted
+      if (dataToSubmit.idLocalidad) {
+        dataToSubmit.idLocalidad = Number(dataToSubmit.idLocalidad);
+      }
+
+      let result;
+      if (currentUsuario?.idUsuario) {
+        result = await usuariosApi.update(currentUsuario.idUsuario, dataToSubmit);
+        if (result) {
+          setUsuarios(
+            usuarios.map(u => 
+              u.idUsuario === currentUsuario.idUsuario ? { ...u, ...result } : u
+            )
+          );
+        }
+      } else {
+        console.log("Creating new user with data:", dataToSubmit);
+        result = await usuariosApi.create(dataToSubmit);
+        if (result) {
+          setUsuarios([...usuarios, result]);
+        }
+      }
+
       if (result) {
-        setUsuarios(
-          usuarios.map(u => 
-            u.idUsuario === currentUsuario.idUsuario ? { ...u, ...result } : u
-          )
+        setIsDialogOpen(false);
+        toast.success(
+          currentUsuario 
+            ? "Usuario actualizado exitosamente" 
+            : "Usuario creado exitosamente"
         );
       }
-    } else {
-      result = await usuariosApi.create(formData);
-      if (result) {
-        setUsuarios([...usuarios, result]);
-      }
-    }
-
-    if (result) {
-      setIsDialogOpen(false);
-      toast.success(
-        currentUsuario 
-          ? "Usuario actualizado exitosamente" 
-          : "Usuario creado exitosamente"
-      );
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      toast.error(`Error: ${(error as Error).message}`);
     }
   };
 
@@ -215,7 +230,21 @@ const Usuarios = () => {
       )}
 
       {/* Form Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) {
+          // Reset form when dialog closes
+          setFormData({
+            nombre: "",
+            apellidos: "",
+            telefono: "",
+            email: "",
+            direccion: "",
+            rol: "Usuario",
+            idLocalidad: undefined,
+          });
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -279,7 +308,7 @@ const Usuarios = () => {
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="localidad">Localidad</Label>
                   <Select
-                    value={formData.idLocalidad?.toString()}
+                    value={formData.idLocalidad?.toString() || ""}
                     onValueChange={(value) => handleSelectChange("idLocalidad", value)}
                   >
                     <SelectTrigger>
@@ -315,7 +344,11 @@ const Usuarios = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDialogOpen(false)}
+              >
                 Cancelar
               </Button>
               <Button type="submit">Guardar</Button>
