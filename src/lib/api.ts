@@ -1,5 +1,3 @@
-
-// src/lib/api.ts
 import { toast } from "sonner";
 
 // Define la URL base de la API (asegúrate de que termina en "/api/")
@@ -178,79 +176,77 @@ async function deleteData(endpoint: string, id: number): Promise<boolean> {
 // Endpoints específicos para cada entidad, siguiendo la convención RESTful
 
 export const empresasApi = {
-  getAll: () => fetchData<Empresa>("empresas"),
-  getById: (id: number) => fetchById<Empresa>("empresas", id),
-  create: (empresa: Empresa) => createData<Empresa>("empresas", empresa),
-  update: (id: number, empresa: Empresa) => updateData<Empresa>("empresas", id, empresa),
-  delete: (id: number) => deleteData("empresas", id),
+  getAll: () => fetchData<Empresa>("EmpresaRecolectora/Lista"),
+  getById: (id: number) => fetchById<Empresa>("EmpresaRecolectora", id),
+  create: (empresa: Empresa) => createData<Empresa>("EmpresaRecolectora/Nuevo", empresa),
+  update: (id: number, empresa: Empresa) => updateData<Empresa>("EmpresaRecolectora", id, empresa),
+  delete: (id: number) => deleteData("EmpresaRecolectora", id),
 };
 
 export const localidadesApi = {
-  getAll: () => fetchData<Localidad>("localidades"),
-  getById: (id: number) => fetchById<Localidad>("localidades", id),
-  create: (localidad: Localidad) => createData<Localidad>("localidades", localidad),
-  update: (id: number, localidad: Localidad) => updateData<Localidad>("localidades", id, localidad),
-  delete: (id: number) => deleteData("localidades", id),
+  getAll: () => fetchData<Localidad>("Localidad/Lista"),
+  getById: (id: number) => fetchById<Localidad>("Localidad", id),
+  create: (localidad: Localidad) => createData<Localidad>("Localidad/Nuevo", localidad),
+  update: (id: number, localidad: Localidad) => updateData<Localidad>("Localidad", id, localidad),
+  delete: (id: number) => deleteData("Localidad", id),
 };
 
 export const residuosApi = {
-  getAll: () => fetchData<Residuo>("residuos"),
-  getById: (id: number) => fetchById<Residuo>("residuos", id),
-  create: (residuo: Residuo) => createData<Residuo>("residuos", residuo),
-  update: (id: number, residuo: Residuo) => updateData<Residuo>("residuos", id, residuo),
-  delete: (id: number) => deleteData("residuos", id),
+  getAll: () => fetchData<Residuo>("Residuo/Lista"),
+  getById: (id: number) => fetchById<Residuo>("Residuo", id),
+  create: (residuo: Residuo) => createData<Residuo>("Residuo/Nuevo", residuo),
+  update: (id: number, residuo: Residuo) => updateData<Residuo>("Residuo", id, residuo),
+  delete: (id: number) => deleteData("Residuo", id),
 };
 
 export const configuracionPuntosApi = {
-  getAll: () => fetchData<ConfiguracionPuntos>("configuracionpuntos"),
-  getById: (id: number) => fetchById<ConfiguracionPuntos>("configuracionpuntos", id),
-  create: (config: ConfiguracionPuntos) => createData<ConfiguracionPuntos>("configuracionpuntos", config),
-  update: (id: number, config: ConfiguracionPuntos) => updateData<ConfiguracionPuntos>("configuracionpuntos", id, config),
-  delete: (id: number) => deleteData("configuracionpuntos", id),
+  getAll: () => fetchData<ConfiguracionPuntos>("ConfiguracionPunto/Lista"),
+  getById: (id: number) => fetchById<ConfiguracionPuntos>("ConfiguracionPunto", id),
+  create: (config: ConfiguracionPuntos) => createData<ConfiguracionPuntos>("ConfiguracionPunto/Nuevo", config),
+  update: (id: number, config: ConfiguracionPuntos) => updateData<ConfiguracionPuntos>("ConfiguracionPunto", id, config),
+  delete: (id: number) => deleteData("ConfiguracionPunto", id),
 };
 
-// Actualizado para usar el endpoint Usuario/Lista como se ve en Postman
 export const usuariosApi = {
   getAll: () => fetchData<Usuario>("Usuario/Lista"),
-  getById: (id: number) => fetchById<Usuario>("usuarios", id),
-  // Actualizado para usar el endpoint Usuario/Nuevo para crear usuarios
+  getById: (id: number) => fetchById<Usuario>("Usuario", id),
   create: (usuario: Usuario) => createData<Usuario>("Usuario/Nuevo", usuario),
-  update: (id: number, usuario: Usuario) => updateData<Usuario>("usuarios", id, usuario),
-  delete: (id: number) => deleteData("usuarios", id),
+  update: (id: number, usuario: Usuario) => updateData<Usuario>("Usuario", id, usuario),
+  delete: (id: number) => deleteData("Usuario", id),
 };
 
 export const puntosUsuarioApi = {
-  getAll: () => fetchData<PuntosUsuario>("puntosusuarios"),
-  getById: (id: number) => fetchById<PuntosUsuario>("puntosusuarios", id),
-  getByUsuario: (idUsuario: number) => fetchData<PuntosUsuario>(`puntosusuarios/usuario/${idUsuario}`),
-  create: (puntos: PuntosUsuario) => createData<PuntosUsuario>("puntosusuarios", puntos),
-  update: (id: number, puntos: PuntosUsuario) => updateData<PuntosUsuario>("puntosusuarios", id, puntos),
-  delete: (id: number) => deleteData("puntosusuarios", id),
+  getAll: () => fetchData<PuntosUsuario>("PuntosUsuario/Lista"),
+  getById: (id: number) => fetchById<PuntosUsuario>("PuntosUsuario", id),
+  getByUsuario: (idUsuario: number) => fetchData<PuntosUsuario>(`PuntosUsuario/Usuario/${idUsuario}`),
+  create: (puntos: PuntosUsuario) => createData<PuntosUsuario>("PuntosUsuario/Nuevo", puntos),
+  update: (id: number, puntos: PuntosUsuario) => updateData<PuntosUsuario>("PuntosUsuario", id, puntos),
+  delete: (id: number) => deleteData("PuntosUsuario", id),
 };
 
 export const notificacionesApi = {
-  getAll: () => fetchData<Notificacion>("notificaciones"),
-  getById: (id: number) => fetchById<Notificacion>("notificaciones", id),
-  getByUsuario: (idUsuario: number) => fetchData<Notificacion>(`notificaciones/usuario/${idUsuario}`),
-  create: (notificacion: Notificacion) => createData<Notificacion>("notificaciones", notificacion),
-  update: (id: number, notificacion: Notificacion) => updateData<Notificacion>("notificaciones", id, notificacion),
-  delete: (id: number) => deleteData("notificaciones", id),
+  getAll: () => fetchData<Notificacion>("Notificacion/Lista"),
+  getById: (id: number) => fetchById<Notificacion>("Notificacion", id),
+  getByUsuario: (idUsuario: number) => fetchData<Notificacion>(`Notificacion/Usuario/${idUsuario}`),
+  create: (notificacion: Notificacion) => createData<Notificacion>("Notificacion/Nuevo", notificacion),
+  update: (id: number, notificacion: Notificacion) => updateData<Notificacion>("Notificacion", id, notificacion),
+  delete: (id: number) => deleteData("Notificacion", id),
 };
 
 export const canjePuntosApi = {
-  getAll: () => fetchData<CanjePuntos>("canjepuntos"),
-  getById: (id: number) => fetchById<CanjePuntos>("canjepuntos", id),
-  getByUsuario: (idUsuario: number) => fetchData<CanjePuntos>(`canjepuntos/usuario/${idUsuario}`),
-  create: (canje: CanjePuntos) => createData<CanjePuntos>("canjepuntos", canje),
-  update: (id: number, canje: CanjePuntos) => updateData<CanjePuntos>("canjepuntos", id, canje),
-  delete: (id: number) => deleteData("canjepuntos", id),
+  getAll: () => fetchData<CanjePuntos>("CanjePunto/Lista"),
+  getById: (id: number) => fetchById<CanjePuntos>("CanjePunto", id),
+  getByUsuario: (idUsuario: number) => fetchData<CanjePuntos>(`CanjePunto/Usuario/${idUsuario}`),
+  create: (canje: CanjePuntos) => createData<CanjePuntos>("CanjePunto/Nuevo", canje),
+  update: (id: number, canje: CanjePuntos) => updateData<CanjePuntos>("CanjePunto", id, canje),
+  delete: (id: number) => deleteData("CanjePunto", id),
 };
 
 export const recoleccionesApi = {
-  getAll: () => fetchData<Recoleccion>("recolecciones"),
-  getById: (id: number) => fetchById<Recoleccion>("recolecciones", id),
-  getByUsuario: (idUsuario: number) => fetchData<Recoleccion>(`recolecciones/usuario/${idUsuario}`),
-  create: (recoleccion: Recoleccion) => createData<Recoleccion>("recolecciones", recoleccion),
-  update: (id: number, recoleccion: Recoleccion) => updateData<Recoleccion>("recolecciones", id, recoleccion),
-  delete: (id: number) => deleteData("recolecciones", id),
+  getAll: () => fetchData<Recoleccion>("Recolectar/Lista"),
+  getById: (id: number) => fetchById<Recoleccion>("Recolectar", id),
+  getByUsuario: (idUsuario: number) => fetchData<Recoleccion>(`Recolectar/Usuario/${idUsuario}`),
+  create: (recoleccion: Recoleccion) => createData<Recoleccion>("Recolectar/Nuevo", recoleccion),
+  update: (id: number, recoleccion: Recoleccion) => updateData<Recoleccion>("Recolectar", id, recoleccion),
+  delete: (id: number) => deleteData("Recolectar", id),
 };
