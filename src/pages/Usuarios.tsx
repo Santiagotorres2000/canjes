@@ -30,6 +30,7 @@ const Usuarios = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -105,8 +106,16 @@ const Usuarios = () => {
     e.preventDefault();
     
     try {
+      // Prevent multiple submissions
+      if (isSubmitting) {
+        return;
+      }
+      
+      setIsSubmitting(true);
+      
       if (!formData.nombre || !formData.apellidos || !formData.telefono) {
         toast.error("Por favor complete los campos obligatorios.");
+        setIsSubmitting(false);
         return;
       }
 
@@ -119,47 +128,51 @@ const Usuarios = () => {
       }
 
       let result;
+      console.log("Processing form submission:", dataToSubmit);
+      
       if (currentUsuario?.idUsuario) {
+        console.log("Updating user:", currentUsuario.idUsuario);
         result = await usuariosApi.update(currentUsuario.idUsuario, dataToSubmit);
+        console.log("Update result:", result);
+        
         if (result) {
-          setUsuarios(
-            usuarios.map(u => 
+          setUsuarios(prevUsuarios => 
+            prevUsuarios.map(u => 
               u.idUsuario === currentUsuario.idUsuario ? { ...u, ...result } : u
             )
           );
+          setIsDialogOpen(false);
+          toast.success("Usuario actualizado exitosamente");
         }
       } else {
         console.log("Creating new user with data:", dataToSubmit);
         result = await usuariosApi.create(dataToSubmit);
+        console.log("Create result:", result);
+        
         if (result) {
-          setUsuarios([...usuarios, result]);
+          setUsuarios(prevUsuarios => [...prevUsuarios, result]);
+          setIsDialogOpen(false);
+          toast.success("Usuario creado exitosamente");
         }
-      }
-
-      if (result) {
-        setIsDialogOpen(false);
-        toast.success(
-          currentUsuario 
-            ? "Usuario actualizado exitosamente" 
-            : "Usuario creado exitosamente"
-        );
       }
     } catch (error) {
       console.error("Error in form submission:", error);
       toast.error(`Error: ${(error as Error).message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
     if (name === "idLocalidad") {
-      setFormData({ ...formData, [name]: parseInt(value) });
+      setFormData(prev => ({ ...prev, [name]: parseInt(value) }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -194,6 +207,20 @@ const Usuarios = () => {
       cell: (usuario: Usuario) => usuario.rol,
     },
   ];
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    // Reset form state
+    setFormData({
+      nombre: "",
+      apellidos: "",
+      telefono: "",
+      email: "",
+      direccion: "",
+      rol: "Usuario",
+      idLocalidad: undefined,
+    });
+  };
 
   return (
     <Layout>
@@ -231,18 +258,8 @@ const Usuarios = () => {
 
       {/* Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {
-        setIsDialogOpen(open);
         if (!open) {
-          // Reset form when dialog closes
-          setFormData({
-            nombre: "",
-            apellidos: "",
-            telefono: "",
-            email: "",
-            direccion: "",
-            rol: "Usuario",
-            idLocalidad: undefined,
-          });
+          closeDialog();
         }
       }}>
         <DialogContent className="sm:max-w-md">
@@ -347,11 +364,13 @@ const Usuarios = () => {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => setIsDialogOpen(false)}
+                onClick={closeDialog}
               >
                 Cancelar
               </Button>
-              <Button type="submit">Guardar</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Guardando..." : "Guardar"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

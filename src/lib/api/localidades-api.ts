@@ -1,0 +1,11 @@
+
+import { Localidad } from "./types";
+import { fetchData, fetchById, createData, updateData, deleteData } from "./api-utils";
+
+export const localidadesApi = {
+  getAll: () => fetchData<Localidad>("Localidad/Lista"),
+  getById: (id: number) => fetchById<Localidad>("Localidad", id),
+  create: (localidad: Localidad) => createData<Localidad>("Localidad/Nuevo", localidad),
+  update: (id: number, localidad: Localidad) => updateData<Localidad>("Localidad", id, localidad),
+  delete: (id: number) => deleteData("Localidad", id),
+};
