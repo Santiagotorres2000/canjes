@@ -1,3 +1,4 @@
+
 // src/lib/api.ts
 import { toast } from "sonner";
 
@@ -208,8 +209,9 @@ export const configuracionPuntosApi = {
   delete: (id: number) => deleteData("configuracionpuntos", id),
 };
 
+// Actualizado para usar el endpoint Usuario/Lista como se ve en Postman
 export const usuariosApi = {
-  getAll: () => fetchData<Usuario>("usuarios"),
+  getAll: () => fetchData<Usuario>("Usuario/Lista"),
   getById: (id: number) => fetchById<Usuario>("usuarios", id),
   create: (usuario: Usuario) => createData<Usuario>("usuarios", usuario),
   update: (id: number, usuario: Usuario) => updateData<Usuario>("usuarios", id, usuario),
