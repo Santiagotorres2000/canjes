@@ -213,7 +213,8 @@ export const configuracionPuntosApi = {
 export const usuariosApi = {
   getAll: () => fetchData<Usuario>("Usuario/Lista"),
   getById: (id: number) => fetchById<Usuario>("usuarios", id),
-  create: (usuario: Usuario) => createData<Usuario>("usuarios", usuario),
+  // Actualizado para usar el endpoint Usuario/Nuevo para crear usuarios
+  create: (usuario: Usuario) => createData<Usuario>("Usuario/Nuevo", usuario),
   update: (id: number, usuario: Usuario) => updateData<Usuario>("usuarios", id, usuario),
   delete: (id: number) => deleteData("usuarios", id),
 };
