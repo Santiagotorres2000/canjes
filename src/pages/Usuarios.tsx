@@ -1,9 +1,14 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { PageHeader } from "@/components/ui/page-header";
+import { DataTable } from "@/components/ui/data-table";
 import { Usuario, usuariosApi, localidadesApi, Localidad } from "@/lib/api";
 import { Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { toast } from "sonner";
 import { DialogDescription } from "@radix-ui/react-dialog";
@@ -14,31 +19,33 @@ const Usuarios = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentUsuario, setCurrentUsuario] = useState<Usuario | null>(null);
+  const [formData, setFormData] = useState<Usuario>({
+    nombre: "",
+    apellidos: "",
+    telefono: "",
+    email: "",
+    direccion: "",
+    rol: "Usuario",
+    idLocalidad: undefined,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch localidades first
-        console.log("Fetching localidades data...");
-        const localidadesData = await localidadesApi.getAll();
-        console.log("Localidades data received:", localidadesData);
-        
-        if (Array.isArray(localidadesData) && localidadesData.length > 0) {
-          setLocalidades(localidadesData);
-        } else {
-          console.warn("No localidades data received or empty array");
-          setLocalidades([]);
-        }
-
-        // Then fetch usuarios
         console.log("Fetching usuarios data...");
         const usuariosData = await usuariosApi.getAll();
         console.log("Usuarios data received:", usuariosData);
         setUsuarios(usuariosData);
+
+        console.log("Fetching localidades data...");
+        const localidadesData = await localidadesApi.getAll();
+        console.log("Localidades data received:", localidadesData);
+        setLocalidades(localidadesData);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(`Error al cargar datos: ${(err as Error).message}`);
@@ -53,11 +60,29 @@ const Usuarios = () => {
 
   const handleAdd = () => {
     setCurrentUsuario(null);
+    setFormData({
+      nombre: "",
+      apellidos: "",
+      telefono: "",
+      email: "",
+      direccion: "",
+      rol: "Usuario",
+      idLocalidad: undefined,
+    });
     setIsDialogOpen(true);
   };
 
   const handleEdit = (usuario: Usuario) => {
     setCurrentUsuario(usuario);
+    setFormData({
+      nombre: usuario.nombre,
+      apellidos: usuario.apellidos,
+      telefono: usuario.telefono,
+      email: usuario.email || "",
+      direccion: usuario.direccion || "",
+      rol: usuario.rol,
+      idLocalidad: usuario.idLocalidad,
+    });
     setIsDialogOpen(true);
   };
 
@@ -77,22 +102,124 @@ const Usuarios = () => {
     setIsDeleteDialogOpen(false);
   };
 
-  const handleFormSuccess = (usuario: Usuario) => {
-    if (currentUsuario?.idUsuario) {
-      // Update
-      setUsuarios(prevUsuarios => 
-        prevUsuarios.map(u => 
-          u.idUsuario === currentUsuario.idUsuario ? { ...u, ...usuario } : u
-        )
-      );
-    } else {
-      // Create
-      setUsuarios(prevUsuarios => [...prevUsuarios, usuario]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      // Prevent multiple submissions
+      if (isSubmitting) {
+        return;
+      }
+      
+      setIsSubmitting(true);
+      
+      if (!formData.nombre || !formData.apellidos || !formData.telefono) {
+        toast.error("Por favor complete los campos obligatorios.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Make a copy of the form data to avoid issues with undefined fields
+      const dataToSubmit = { ...formData };
+      
+      // Verify idLocalidad is properly formatted
+      if (dataToSubmit.idLocalidad) {
+        dataToSubmit.idLocalidad = Number(dataToSubmit.idLocalidad);
+      }
+
+      let result;
+      console.log("Processing form submission:", dataToSubmit);
+      
+      if (currentUsuario?.idUsuario) {
+        console.log("Updating user:", currentUsuario.idUsuario);
+        result = await usuariosApi.update(currentUsuario.idUsuario, dataToSubmit);
+        console.log("Update result:", result);
+        
+        if (result) {
+          setUsuarios(prevUsuarios => 
+            prevUsuarios.map(u => 
+              u.idUsuario === currentUsuario.idUsuario ? { ...u, ...result } : u
+            )
+          );
+          setIsDialogOpen(false);
+          toast.success("Usuario actualizado exitosamente");
+        }
+      } else {
+        console.log("Creating new user with data:", dataToSubmit);
+        result = await usuariosApi.create(dataToSubmit);
+        console.log("Create result:", result);
+        
+        if (result) {
+          setUsuarios(prevUsuarios => [...prevUsuarios, result]);
+          setIsDialogOpen(false);
+          toast.success("Usuario creado exitosamente");
+        }
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      toast.error(`Error: ${(error as Error).message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    if (name === "idLocalidad") {
+      setFormData(prev => ({ ...prev, [name]: parseInt(value) }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  // Define columns for data table
+  const columns = [
+    {
+      key: "nombre",
+      header: "Nombre",
+      cell: (usuario: Usuario) => `${usuario.nombre} ${usuario.apellidos}`,
+    },
+    {
+      key: "telefono",
+      header: "Teléfono",
+      cell: (usuario: Usuario) => usuario.telefono,
+    },
+    {
+      key: "email",
+      header: "Email",
+      cell: (usuario: Usuario) => usuario.email || "N/A",
+    },
+    {
+      key: "localidad",
+      header: "Localidad",
+      cell: (usuario: Usuario) => {
+        const localidad = localidades.find(l => l.idLocalidad === usuario.idLocalidad);
+        return localidad ? localidad.nombre : "N/A";
+      },
+    },
+    {
+      key: "rol",
+      header: "Rol",
+      cell: (usuario: Usuario) => usuario.rol,
+    },
+  ];
+
   const closeDialog = () => {
     setIsDialogOpen(false);
+    // Reset form state
+    setFormData({
+      nombre: "",
+      apellidos: "",
+      telefono: "",
+      email: "",
+      direccion: "",
+      rol: "Usuario",
+      idLocalidad: undefined,
+    });
   };
 
   return (
@@ -208,17 +335,17 @@ const Usuarios = () => {
                       <SelectValue placeholder="Seleccione" />
                     </SelectTrigger>
                     <SelectContent>
-                    {localidades
-                      .filter(localidad => localidad.idLocalidad != null)
-                      .map((localidad) => (
-                        <SelectItem
-                          key={localidad.idLocalidad}
-                          value={localidad.idLocalidad.toString()}
-                        >
-                          {localidad.nombre}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
+  {localidades
+    .filter(localidad => localidad.idLocalidad !== undefined && localidad.idLocalidad !== null)
+    .map((localidad) => (
+      <SelectItem
+        key={localidad.idLocalidad}
+        value={localidad.idLocalidad.toString()}
+      >
+        {localidad.nombre}
+      </SelectItem>
+    ))}
+</SelectContent>
                   </Select>
                 </div>
               </div>
