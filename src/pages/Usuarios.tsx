@@ -38,15 +38,23 @@ const Usuarios = () => {
       setIsLoading(true);
       setError(null);
       try {
+        // Fetch localidades first
+        console.log("Fetching localidades data...");
+        const localidadesData = await localidadesApi.getAll();
+        console.log("Localidades data received:", localidadesData);
+        
+        if (Array.isArray(localidadesData) && localidadesData.length > 0) {
+          setLocalidades(localidadesData);
+        } else {
+          console.warn("No localidades data received or empty array");
+          setLocalidades([]);
+        }
+
+        // Then fetch usuarios
         console.log("Fetching usuarios data...");
         const usuariosData = await usuariosApi.getAll();
         console.log("Usuarios data received:", usuariosData);
         setUsuarios(usuariosData);
-
-        console.log("Fetching localidades data...");
-        const localidadesData = await localidadesApi.getAll();
-        console.log("Localidades data received:", localidadesData);
-        setLocalidades(localidadesData);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(`Error al cargar datos: ${(err as Error).message}`);
@@ -335,18 +343,24 @@ const Usuarios = () => {
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione" />
                     </SelectTrigger>
-                    <SelectContent>
-                    {localidades
-                      .filter(localidad => localidad.idLocalidad != null)
-                      .map((localidad) => (
-                        <SelectItem
-                          key={localidad.idLocalidad}
-                          value={localidad.idLocalidad.toString()}
-                        >
-                          {localidad.nombre}
+                    <SelectContent className="bg-background">
+                      {localidades && localidades.length > 0 ? (
+                        localidades
+                          .filter(localidad => localidad.idLocalidad != null)
+                          .map((localidad) => (
+                            <SelectItem
+                              key={localidad.idLocalidad}
+                              value={localidad.idLocalidad.toString()}
+                            >
+                              {localidad.nombre}
+                            </SelectItem>
+                          ))
+                      ) : (
+                        <SelectItem value="" disabled>
+                          No hay localidades disponibles
                         </SelectItem>
-                      ))}
-                  </SelectContent>
+                      )}
+                    </SelectContent>
                   </Select>
                 </div>
               </div>
@@ -359,7 +373,7 @@ const Usuarios = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione un rol" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background">
                     <SelectItem value="Usuario">Usuario</SelectItem>
                     <SelectItem value="Administrador">Administrador</SelectItem>
                   </SelectContent>
