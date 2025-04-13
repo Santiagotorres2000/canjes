@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Table, 
@@ -50,15 +49,17 @@ export function DataTable<T>({
   const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Handle search and filtering
-  const filteredData = data.filter((item) => {
-    return Object.values(item as Record<string, any>).some((value) => {
-      if (value === null || value === undefined) return false;
-      return value.toString().toLowerCase().includes(searchTerm.toLowerCase());
+  // Corregido: Usar referencias estables para los datos filtrados
+  const filteredData = React.useMemo(() => {
+    return data.filter((item) => {
+      return Object.values(item as Record<string, unknown>).some((value) => {
+        if (value === null || value === undefined) return false;
+        return value.toString().toLowerCase().includes(searchTerm.toLowerCase());
+      });
     });
-  });
+  }, [data, searchTerm]);
 
-  // Pagination
+  // Corregido: Calcular totalPages basado en datos filtrados
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -66,7 +67,18 @@ export function DataTable<T>({
   );
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  // Corregido: Manejo de acciones con referencias correctas
+  const handleEdit = (item: T) => {
+    console.log("Editing item:", item);
+    onEdit?.(item);
+  };
+
+  const handleDelete = (item: T) => {
+    console.log("Deleting item:", item);
+    onDelete?.(item);
   };
 
   return (
@@ -86,14 +98,20 @@ export function DataTable<T>({
           <Input
             placeholder="Buscar..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Resetear a primera página al buscar
+            }}
             className="pl-8"
           />
         </div>
         <select
           className="px-2 py-2 rounded border bg-background text-foreground"
           value={itemsPerPage}
-          onChange={(e) => setItemsPerPage(Number(e.target.value))}
+          onChange={(e) => {
+            setItemsPerPage(Number(e.target.value));
+            setCurrentPage(1); // Resetear a primera página al cambiar items por página
+          }}
         >
           <option value={5}>5</option>
           <option value={10}>10</option>
@@ -103,60 +121,68 @@ export function DataTable<T>({
       </div>
 
       <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((column) => (
-                <TableHead key={column.key}>{column.header}</TableHead>
-              ))}
-              {(onEdit || onDelete) && (
-                <TableHead className="text-right">Acciones</TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.length > 0 ? (
-              paginatedData.map((item) => (
-                <TableRow key={getItemId(item)}>
-                  {columns.map((column) => (
-                    <TableCell key={`${getItemId(item)}-${column.key}`}>
-                      {column.cell(item)}
-                    </TableCell>
-                  ))}
-                  {(onEdit || onDelete) && (
-                    <TableCell className="text-right space-x-2">
-                      {onEdit && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => onEdit(item)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onDelete && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => onDelete(item)}
-                          className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="text-center py-6">
-                  No se encontraron registros
-                </TableCell>
-              </TableRow>
+      <Table>
+  <TableHeader>
+    <TableRow>
+      {columns.map((column) => (
+        <TableHead key={column.key}>{column.header}</TableHead>
+      ))}
+      {(onEdit || onDelete) && (
+        <TableHead className="text-right">Acciones</TableHead>
+      )}
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    {paginatedData.length > 0 ? (
+      paginatedData.map((item) => {
+        const itemId = getItemId(item);
+        return (
+          <TableRow key={itemId}>
+            {columns.map((column) => (
+              <TableCell key={`${itemId}-${column.key}`}>
+                {column.cell(item)}
+              </TableCell>
+            ))}
+            {(onEdit || onDelete) && (
+              <TableCell className="text-right space-x-2">
+                {onEdit && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleEdit(item)}
+                    data-testid={`edit-${itemId}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleDelete(item)}
+                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    data-testid={`delete-${itemId}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </TableCell>
             )}
-          </TableBody>
-        </Table>
+          </TableRow>
+        );
+      })
+    ) : (
+      <TableRow>
+        <TableCell 
+          colSpan={columns.length + ((onEdit || onDelete) ? 1 : 0)} 
+          className="text-center py-6"
+        >
+          No se encontraron registros
+        </TableCell>
+      </TableRow>
+    )}
+  </TableBody>
+</Table>
       </div>
 
       {totalPages > 1 && (

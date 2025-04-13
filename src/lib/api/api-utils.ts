@@ -94,31 +94,46 @@ export async function createData<T>(endpoint: string, data: T): Promise<T | null
 
 export async function updateData<T>(endpoint: string, id: number, data: T): Promise<T | null> {
   try {
-    const responseData = await fetchWithLogging(`${API_URL}${endpoint}/${id}`, {
+    const response = await fetchWithLogging(`${API_URL}${endpoint}/${id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({...data, idUsuario: id}), // Asegurar envío de ID
     });
+    
+    // Manejar diferentes códigos de estado
+    if (response.status === 409) {
+      throw new Error("El correo electrónico ya está registrado");
+    }
+    
+    const responseData = response.status === 204 ? data : await response.json();
     toast.success("Registro actualizado exitosamente");
-    return responseData;
+    return responseData as T;
   } catch (error) {
-    console.error(`Failed to update ${endpoint}/${id}:`, error);
-    toast.error(`Error al actualizar registro: ${(error as Error).message}`);
+    console.error(`Update error for ID ${id}:`, error);
+    toast.error(`Error al actualizar: ${(error as Error).message}`);
     return null;
   }
 }
 
 export async function deleteData(endpoint: string, id: number): Promise<boolean> {
   try {
-    await fetchWithLogging(`${API_URL}${endpoint}/${id}`, {
-      method: "DELETE",
+    const response = await fetchWithLogging(`${API_URL}${endpoint}`, { // Eliminamos /${id} de la URL
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ Id: id }) // Envía el ID en el cuerpo con mayúscula
     });
+
+    // Verificar estado de la respuesta
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+
     toast.success("Registro eliminado exitosamente");
     return true;
   } catch (error) {
-    console.error(`Failed to delete ${endpoint}/${id}:`, error);
+    console.error(`Failed to delete ${endpoint}:`, error);
     toast.error(`Error al eliminar registro: ${(error as Error).message}`);
     return false;
   }

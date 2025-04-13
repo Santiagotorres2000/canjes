@@ -6,6 +6,8 @@ export const usuariosApi = {
   getAll: () => fetchData<Usuario>("Usuario/Lista"),
   getById: (id: number) => fetchById<Usuario>("Usuario", id),
   create: (usuario: Usuario) => createData<Usuario>("Usuario/Nuevo", usuario),
-  update: (id: number, usuario: Usuario) => updateData<Usuario>("Usuario", id, usuario),
-  delete: (id: number) => deleteData("Usuario", id),
+  update: (id: number, usuario: Usuario) => updateData<Usuario>("Usuario/Editar", id, usuario),
+  delete: (id: number) => deleteData("Usuario/Eliminar", id ),
+  
 };
+

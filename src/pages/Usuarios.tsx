@@ -99,76 +99,84 @@ const Usuarios = () => {
   };
 
   const confirmDelete = async () => {
-    if (currentUsuario?.idUsuario) {
-      const success = await usuariosApi.delete(currentUsuario.idUsuario);
-      if (success) {
-        setUsuarios(usuarios.filter(u => u.idUsuario !== currentUsuario.idUsuario));
-        toast.success("Usuario eliminado exitosamente");
-      }
+    if (!currentUsuario?.idUsuario) {
+      toast.error("Usuario no identificado");
+      return;
     }
-    setIsDeleteDialogOpen(false);
+  
+    // Declarar con const (no se reasigna)
+    const usuariosPrevios = [...usuarios]; // Corregida la sintaxis del spread
+  
+    try {
+      // Actualización optimista
+      setUsuarios(prev => prev.filter(u => u.idUsuario !== currentUsuario.idUsuario));
+      
+      await usuariosApi.delete(currentUsuario.idUsuario);
+      toast.success("Usuario eliminado");
+  
+    } catch (error) { // Corregida posición del catch
+      // Restaurar estado anterior
+      setUsuarios(usuariosPrevios);
+  
+      console.error("Error en eliminación:", error);
+      toast.error(
+        (error as Error).message.includes("404") 
+          ? "Usuario no encontrado en el servidor" 
+          : "Error al eliminar"
+      );
+    } finally { // Corregida posición del finally
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-      // Prevent multiple submissions
-      if (isSubmitting) {
-        return;
-      }
-      
-      setIsSubmitting(true);
-      
-      if (!formData.nombre || !formData.apellidos || !formData.telefono) {
-        toast.error("Por favor complete los campos obligatorios.");
-        setIsSubmitting(false);
-        return;
-      }
+        if (isSubmitting) return;
+        setIsSubmitting(true);
 
-      // Make a copy of the form data to avoid issues with undefined fields
-      const dataToSubmit = { ...formData };
-      
-      // Verify idLocalidad is properly formatted
-      if (dataToSubmit.idLocalidad) {
-        dataToSubmit.idLocalidad = Number(dataToSubmit.idLocalidad);
-      }
+        // Validar campos obligatorios
+        if (!formData.nombre || !formData.apellidos || !formData.telefono) {
+            toast.error("Complete los campos obligatorios");
+            return;
+        }
 
-      let result;
-      console.log("Processing form submission:", dataToSubmit);
-      
-      if (currentUsuario?.idUsuario) {
-        console.log("Updating user:", currentUsuario.idUsuario);
-        result = await usuariosApi.update(currentUsuario.idUsuario, dataToSubmit);
-        console.log("Update result:", result);
-        
-        if (result) {
-          setUsuarios(prevUsuarios => 
-            prevUsuarios.map(u => 
-              u.idUsuario === currentUsuario.idUsuario ? { ...u, ...result } : u
-            )
-          );
-          setIsDialogOpen(false);
-          toast.success("Usuario actualizado exitosamente");
+        // Preparar datos para enviar
+        const dataToSubmit = {
+            ...formData,
+            idLocalidad: formData.idLocalidad ? Number(formData.idLocalidad) : undefined,
+        };
+
+        if (currentUsuario?.idUsuario) {
+            // Modo edición: enviar PUT con ID
+            const updatedUser = await usuariosApi.update(currentUsuario.idUsuario, dataToSubmit);
+            
+            // Actualizar estado local con el usuario modificado
+            setUsuarios(prev => 
+                prev.map(u => 
+                    u.idUsuario === currentUsuario.idUsuario 
+                    ? { ...u, ...updatedUser } 
+                    : u
+                )
+            );
+            toast.success("Usuario actualizado");
+        } else {
+            // Modo creación: enviar POST
+            const newUser = await usuariosApi.create(dataToSubmit);
+            setUsuarios(prev => [...prev, newUser]);
+            toast.success("Usuario creado");
         }
-      } else {
-        console.log("Creating new user with data:", dataToSubmit);
-        result = await usuariosApi.create(dataToSubmit);
-        console.log("Create result:", result);
-        
-        if (result) {
-          setUsuarios(prevUsuarios => [...prevUsuarios, result]);
-          setIsDialogOpen(false);
-          toast.success("Usuario creado exitosamente");
-        }
-      }
+
+        setIsDialogOpen(false);
     } catch (error) {
-      console.error("Error in form submission:", error);
-      toast.error(`Error: ${(error as Error).message}`);
+        console.error("Error:", error);
+        toast.error("Error al procesar la solicitud");
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
-  };
+};
+  
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -259,7 +267,9 @@ const Usuarios = () => {
           onAdd={handleAdd}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          getItemId={(usuario) => usuario.idUsuario?.toString() || Math.random().toString()}
+          getItemId={(usuario) => 
+            usuario.idUsuario?.toString() || `temp-${Math.random().toString(36).substr(2, 9)}`
+          }
           title="Usuarios"
           addButtonText="Nuevo Usuario"
         />
