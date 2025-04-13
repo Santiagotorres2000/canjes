@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { toast } from "sonner";
-import { DialogDescription } from "@radix-ui/react-dialog";
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -251,7 +250,7 @@ const Usuarios = () => {
           onAdd={handleAdd}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          getItemId={(usuario) => usuario.idUsuario?.toString() || Math.random().toString()}
+          getItemId={(usuario) => usuario.idUsuario || 0}
           title="Usuarios"
           addButtonText="Nuevo Usuario"
         />
@@ -264,14 +263,11 @@ const Usuarios = () => {
         }
       }}>
         <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {currentUsuario ? "Editar Usuario" : "Crear Nuevo Usuario"}
-          </DialogTitle>
-          <DialogDescription>
-            Complete los campos requeridos para {currentUsuario ? "editar" : "crear"} el usuario.
-          </DialogDescription>
-        </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>
+              {currentUsuario ? "Editar Usuario" : "Crear Nuevo Usuario"}
+            </DialogTitle>
+          </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
@@ -336,17 +332,15 @@ const Usuarios = () => {
                       <SelectValue placeholder="Seleccione" />
                     </SelectTrigger>
                     <SelectContent>
-                    {localidades
-                      .filter(localidad => localidad.idLocalidad != null)
-                      .map((localidad) => (
+                      {localidades.map((localidad) => (
                         <SelectItem
                           key={localidad.idLocalidad}
-                          value={localidad.idLocalidad.toString()}
+                          value={localidad.idLocalidad?.toString() || ""}
                         >
                           {localidad.nombre}
                         </SelectItem>
                       ))}
-                  </SelectContent>
+                    </SelectContent>
                   </Select>
                 </div>
               </div>
