@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable } from "@/components/ui/data-table";
-import { Usuario, usuariosApi, localidadesApi, Localidad } from "@/lib/api";
+import { Usuario, usuariosApi, localidadesApi, Localidad, RawLocalidad } from "@/lib/api";
 import { Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { toast } from "sonner";
 import { DialogDescription } from "@radix-ui/react-dialog";
+
+
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -44,8 +46,13 @@ const Usuarios = () => {
 
         console.log("Fetching localidades data...");
         const localidadesData = await localidadesApi.getAll();
-        console.log("Localidades data received:", localidadesData);
-        setLocalidades(localidadesData);
+        console.log("Localidades data received (raw):", localidadesData);
+        // Normalizamos para asegurar que cada objeto tenga idLocalidad (con "L" mayúscula)
+        const normalizedLocalidades = (localidadesData as RawLocalidad[]).map((l) => ({
+          idLocalidad: l.idLocalidad ?? l.idlocalidad, // Usa idLocalidad si existe, sino idlocalidad
+          nombre: l.nombre,
+        }));
+        setLocalidades(normalizedLocalidades);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(`Error al cargar datos: ${(err as Error).message}`);
@@ -169,6 +176,8 @@ const Usuarios = () => {
   };
 
   const handleSelectChange = (name: string, value: string) => {
+    console.log("Select change:", name, value);
+
     if (name === "idLocalidad") {
       setFormData(prev => ({ ...prev, [name]: parseInt(value) }));
     } else {
@@ -328,25 +337,25 @@ const Usuarios = () => {
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="localidad">Localidad</Label>
                   <Select
-                    value={formData.idLocalidad?.toString() || ""}
-                    onValueChange={(value) => handleSelectChange("idLocalidad", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione" />
-                    </SelectTrigger>
-                    <SelectContent>
-  {localidades
-    .filter(localidad => localidad.idLocalidad !== undefined && localidad.idLocalidad !== null)
-    .map((localidad) => (
-      <SelectItem
-        key={localidad.idLocalidad}
-        value={localidad.idLocalidad.toString()}
-      >
-        {localidad.nombre}
-      </SelectItem>
-    ))}
-</SelectContent>
-                  </Select>
+  value={formData.idLocalidad?.toString() || ""}
+  onValueChange={(value) => handleSelectChange("idLocalidad", value)}
+>
+  <SelectTrigger>
+    <SelectValue placeholder="Seleccione" />
+  </SelectTrigger>
+  <SelectContent>
+    {localidades
+      .filter((l) => l.idLocalidad !== undefined && l.idLocalidad !== null)
+      .map((localidad) => (
+        <SelectItem
+          key={localidad.idLocalidad}
+          value={localidad.idLocalidad.toString()}
+        >
+          {localidad.nombre}
+        </SelectItem>
+      ))}
+  </SelectContent>
+</Select>
                 </div>
               </div>
               <div className="flex flex-col space-y-1.5">
