@@ -47,11 +47,18 @@ export async function fetchData<T>(endpoint: string): Promise<T[]> {
       return [];
     }
     
-    return Array.isArray(data) ? data : [data];
+    // Make sure we return an array even if the API returns a single object
+    if (Array.isArray(data)) {
+      return data;
+    } else if (typeof data === 'object') {
+      return [data as T];
+    }
+    
+    return [];
   } catch (error) {
     console.error(`Failed to fetch ${endpoint}:`, error);
     toast.error(`Error al cargar datos: ${(error as Error).message}`);
-    return [];
+    throw error; // Let the caller handle the error
   }
 }
 
