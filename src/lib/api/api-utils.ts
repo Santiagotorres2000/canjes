@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { API_URL } from "./types";
 
@@ -15,7 +14,20 @@ export const fetchWithLogging = async (url: string, options?: RequestInit) => {
       throw new Error(`Error: ${response.statusText} - ${errorText}`);
     }
     
-    const data = await response.json();
+    let data;
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+      try {
+        // Try to parse as JSON anyway in case the content-type header is wrong
+        data = JSON.parse(data);
+      } catch (e) {
+        // It's not JSON, keep as text
+      }
+    }
+    
     console.log("Response data:", data);
     return data;
   } catch (error) {
@@ -29,11 +41,24 @@ export async function fetchData<T>(endpoint: string): Promise<T[]> {
   try {
     console.log(`Fetching data from ${API_URL}${endpoint}`);
     const data = await fetchWithLogging(`${API_URL}${endpoint}`);
-    return data;
+    
+    if (!data) {
+      console.warn(`No data returned from ${endpoint}`);
+      return [];
+    }
+    
+    // Make sure we return an array even if the API returns a single object
+    if (Array.isArray(data)) {
+      return data;
+    } else if (typeof data === 'object') {
+      return [data as T];
+    }
+    
+    return [];
   } catch (error) {
     console.error(`Failed to fetch ${endpoint}:`, error);
     toast.error(`Error al cargar datos: ${(error as Error).message}`);
-    return [];
+    throw error; // Let the caller handle the error
   }
 }
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -29,6 +28,7 @@ const Recolecciones = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [residuos, setResiduos] = useState<Residuo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentRecoleccion, setCurrentRecoleccion] = useState<Recoleccion | null>(null);
@@ -43,32 +43,43 @@ const Recolecciones = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [recoleccionesData, usuariosData, empresasData, residuosData] = await Promise.all([
-        recoleccionesApi.getAll(),
-        usuariosApi.getAll(),
-        empresasApi.getAll(),
-        residuosApi.getAll()
-      ]);
-      
-      setRecolecciones(recoleccionesData);
-      setUsuarios(usuariosData);
-      setEmpresas(empresasData);
-      setResiduos(residuosData);
+      setIsLoading(true);
+      try {
+        const [recoleccionesData, usuariosData, empresasData, residuosData] = await Promise.all([
+          recoleccionesApi.getAll(),
+          usuariosApi.getAll(),
+          empresasApi.getAll(),
+          residuosApi.getAll()
+        ]);
+        
+        setRecolecciones(Array.isArray(recoleccionesData) ? recoleccionesData : []);
+        setUsuarios(Array.isArray(usuariosData) ? usuariosData : []);
+        setEmpresas(Array.isArray(empresasData) ? empresasData : []);
+        setResiduos(Array.isArray(residuosData) ? residuosData : []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Error al cargar los datos");
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchData();
   }, []);
 
   const handleAdd = () => {
-    setCurrentRecoleccion(null);
-    setFormData({
-      idUsuario: usuarios.length > 0 ? usuarios[0].idUsuario || 0 : 0,
-      idEmpresa: empresas.length > 0 ? empresas[0].idEmpresa || 0 : 0,
-      idResiduo: residuos.length > 0 ? residuos[0].idResiduo || 0 : 0,
+    // Initialize with defaults
+    const defaultForm: Recoleccion = {
+      idUsuario: usuarios.length > 0 && usuarios[0].idUsuario ? usuarios[0].idUsuario : 0,
+      idEmpresa: empresas.length > 0 && empresas[0].idEmpresa ? empresas[0].idEmpresa : 0,
+      idResiduo: residuos.length > 0 && residuos[0].idResiduo ? residuos[0].idResiduo : 0,
       fechaRecoleccion: new Date().toISOString().split("T")[0],
       pesoKg: 0,
       estado: "Programada",
-    });
+    };
+    
+    setCurrentRecoleccion(null);
+    setFormData(defaultForm);
     setIsDialogOpen(true);
   };
 
@@ -92,10 +103,15 @@ const Recolecciones = () => {
 
   const confirmDelete = async () => {
     if (currentRecoleccion?.idRecoleccion) {
-      const success = await recoleccionesApi.delete(currentRecoleccion.idRecoleccion);
-      if (success) {
-        setRecolecciones(recolecciones.filter(r => r.idRecoleccion !== currentRecoleccion.idRecoleccion));
-        toast.success("Recolección eliminada exitosamente");
+      try {
+        const success = await recoleccionesApi.delete(currentRecoleccion.idRecoleccion);
+        if (success) {
+          setRecolecciones(recolecciones.filter(r => r.idRecoleccion !== currentRecoleccion.idRecoleccion));
+          toast.success("Recolección eliminada exitosamente");
+        }
+      } catch (error) {
+        console.error("Error deleting recoleccion:", error);
+        toast.error("Error al eliminar la recolección");
       }
     }
     setIsDeleteDialogOpen(false);
@@ -109,37 +125,42 @@ const Recolecciones = () => {
       return;
     }
 
-    let result;
-    if (currentRecoleccion?.idRecoleccion) {
-      result = await recoleccionesApi.update(currentRecoleccion.idRecoleccion, formData);
+    try {
+      let result;
+      if (currentRecoleccion?.idRecoleccion) {
+        result = await recoleccionesApi.update(currentRecoleccion.idRecoleccion, formData);
+        if (result) {
+          setRecolecciones(
+            recolecciones.map(r => 
+              r.idRecoleccion === currentRecoleccion.idRecoleccion ? { ...r, ...result } : r
+            )
+          );
+        }
+      } else {
+        result = await recoleccionesApi.create(formData);
+        if (result) {
+          setRecolecciones([...recolecciones, result]);
+        }
+      }
+
       if (result) {
-        setRecolecciones(
-          recolecciones.map(r => 
-            r.idRecoleccion === currentRecoleccion.idRecoleccion ? { ...r, ...result } : r
-          )
+        setIsDialogOpen(false);
+        toast.success(
+          currentRecoleccion 
+            ? "Recolección actualizada exitosamente" 
+            : "Recolección creada exitosamente"
         );
       }
-    } else {
-      result = await recoleccionesApi.create(formData);
-      if (result) {
-        setRecolecciones([...recolecciones, result]);
-      }
-    }
-
-    if (result) {
-      setIsDialogOpen(false);
-      toast.success(
-        currentRecoleccion 
-          ? "Recolección actualizada exitosamente" 
-          : "Recolección creada exitosamente"
-      );
+    } catch (error) {
+      console.error("Error saving recoleccion:", error);
+      toast.error("Error al guardar la recolección");
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === "pesoKg") {
-      setFormData({ ...formData, [name]: parseFloat(value) });
+      setFormData({ ...formData, [name]: parseFloat(value) || 0 });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -147,7 +168,7 @@ const Recolecciones = () => {
 
   const handleSelectChange = (name: string, value: string) => {
     if (name === "idUsuario" || name === "idEmpresa" || name === "idResiduo") {
-      setFormData({ ...formData, [name]: parseInt(value) });
+      setFormData({ ...formData, [name]: parseInt(value) || 0 });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -234,16 +255,23 @@ const Recolecciones = () => {
         }}
       />
 
-      <DataTable
-        data={recolecciones}
-        columns={columns}
-        onAdd={handleAdd}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        getItemId={(recoleccion) => recoleccion.idRecoleccion || 0}
-        title="Recolecciones"
-        addButtonText="Nueva Recolección"
-      />
+      {isLoading ? (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Cargando datos...</span>
+        </div>
+      ) : (
+        <DataTable
+          data={recolecciones}
+          columns={columns}
+          onAdd={handleAdd}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          getItemId={(recoleccion) => recoleccion.idRecoleccion?.toString() || "0"}
+          title="Recolecciones"
+          addButtonText="Nueva Recolección"
+        />
+      )}
 
       {/* Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -258,7 +286,7 @@ const Recolecciones = () => {
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="idUsuario">Usuario*</Label>
                 <Select
-                  value={formData.idUsuario?.toString()}
+                  value={formData.idUsuario?.toString() || ""}
                   onValueChange={(value) => handleSelectChange("idUsuario", value)}
                 >
                   <SelectTrigger>
@@ -276,10 +304,11 @@ const Recolecciones = () => {
                   </SelectContent>
                 </Select>
               </div>
+              
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="idEmpresa">Empresa Recolectora*</Label>
                 <Select
-                  value={formData.idEmpresa?.toString()}
+                  value={formData.idEmpresa?.toString() || ""}
                   onValueChange={(value) => handleSelectChange("idEmpresa", value)}
                 >
                   <SelectTrigger>
@@ -300,7 +329,7 @@ const Recolecciones = () => {
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="idResiduo">Tipo de Residuo*</Label>
                 <Select
-                  value={formData.idResiduo?.toString()}
+                  value={formData.idResiduo?.toString() || ""}
                   onValueChange={(value) => handleSelectChange("idResiduo", value)}
                 >
                   <SelectTrigger>
