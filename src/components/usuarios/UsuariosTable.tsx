@@ -74,7 +74,7 @@ const UsuariosTable = ({
 
   return (
     <DataTable
-      data={usuarios}
+      data={usuarios || []}
       columns={columns}
       onAdd={onAdd}
       onEdit={onEdit}
