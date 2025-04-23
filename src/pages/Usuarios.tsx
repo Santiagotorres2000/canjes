@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -12,8 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { toast } from "sonner";
 import { DialogDescription } from "@radix-ui/react-dialog";
-
-
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -94,27 +93,43 @@ const Usuarios = () => {
   };
 
   const handleDelete = (usuario: Usuario) => {
+    console.log("Usuario a eliminar:", usuario); // Agregar log para depuración
     setCurrentUsuario(usuario);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (!currentUsuario?.idUsuario) {
-      toast.error("Usuario no identificado");
+    if (!currentUsuario) {
+      toast.error("Usuario no seleccionado");
+      return;
+    }
+    
+    // Asegurarse de que idUsuario existe y es un número
+    const idUsuario = currentUsuario.idUsuario;
+    if (idUsuario === undefined || idUsuario === null) {
+      toast.error("Usuario no identificado (ID no encontrado)");
+      setIsDeleteDialogOpen(false);
       return;
     }
   
-    // Declarar con const (no se reasigna)
-    const usuariosPrevios = [...usuarios]; // Corregida la sintaxis del spread
+    console.log("Intentando eliminar usuario con ID:", idUsuario);
+    const usuariosPrevios = [...usuarios];
   
     try {
       // Actualización optimista
-      setUsuarios(prev => prev.filter(u => u.idUsuario !== currentUsuario.idUsuario));
+      setUsuarios(prev => prev.filter(u => u.idUsuario !== idUsuario));
       
-      await usuariosApi.delete(currentUsuario.idUsuario);
-      toast.success("Usuario eliminado");
+      const success = await usuariosApi.delete(idUsuario);
+      
+      if (success) {
+        toast.success("Usuario eliminado correctamente");
+      } else {
+        // Si la API devuelve false, restauramos el estado
+        setUsuarios(usuariosPrevios);
+        toast.error("No se pudo eliminar el usuario");
+      }
   
-    } catch (error) { // Corregida posición del catch
+    } catch (error) {
       // Restaurar estado anterior
       setUsuarios(usuariosPrevios);
   
@@ -122,9 +137,9 @@ const Usuarios = () => {
       toast.error(
         (error as Error).message.includes("404") 
           ? "Usuario no encontrado en el servidor" 
-          : "Error al eliminar"
+          : `Error al eliminar: ${(error as Error).message}`
       );
-    } finally { // Corregida posición del finally
+    } finally {
       setIsDeleteDialogOpen(false);
     }
   };
