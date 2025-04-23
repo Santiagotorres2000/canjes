@@ -27,6 +27,12 @@ export const recoleccionesApi = {
       return null;
     }
   },
-  update: (id: number, recoleccion: Recoleccion) => updateData<Recoleccion>("Recolectar", id, recoleccion),
+  update: (id: number, recoleccion: Recoleccion) => {
+    const recoleccionWithId = {
+      ...recoleccion,
+      idRecoleccion: id
+    };
+    return updateData<Recoleccion>("Recolectar/Editar", recoleccionWithId);
+  },
   delete: (id: number) => deleteData("Recolectar", id),
 };

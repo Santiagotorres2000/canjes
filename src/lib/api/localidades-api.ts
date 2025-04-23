@@ -16,6 +16,12 @@ export const localidadesApi = {
   },
   getById: (id: number) => fetchById<Localidad>("Localidad", id),
   create: (localidad: Localidad) => createData<Localidad>("Localidad/Nuevo", localidad),
-  update: (id: number, localidad: Localidad) => updateData<Localidad>("Localidad", id, localidad),
+  update: (id: number, localidad: Localidad) => {
+    const localidadWithId = {
+      ...localidad,
+      idLocalidad: id
+    };
+    return updateData<Localidad>("Localidad/Editar", localidadWithId);
+  },
   delete: (id: number) => deleteData("Localidad", id),
 };

@@ -7,6 +7,12 @@ export const notificacionesApi = {
   getById: (id: number) => fetchById<Notificacion>("Notificacion", id),
   getByUsuario: (idUsuario: number) => fetchData<Notificacion>(`Notificacion/Usuario/${idUsuario}`),
   create: (notificacion: Notificacion) => createData<Notificacion>("Notificacion/Nuevo", notificacion),
-  update: (id: number, notificacion: Notificacion) => updateData<Notificacion>("Notificacion", id, notificacion),
+  update: (id: number, notificacion: Notificacion) => {
+    const notificacionWithId = {
+      ...notificacion,
+      idNotificacion: id
+    };
+    return updateData<Notificacion>("Notificacion/Editar", notificacionWithId);
+  },
   delete: (id: number) => deleteData("Notificacion", id),
 };
