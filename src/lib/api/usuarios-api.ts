@@ -14,5 +14,13 @@ export const usuariosApi = {
     };
     return updateData<Usuario>("Usuario/Editar", usuarioWithId);
   },
-  delete: (id: number) => deleteData("Usuario/Eliminar", id),
+  delete: (id: number) => {
+    console.log("Deleting usuario with ID:", id);
+    // Asegurar que el ID sea un número válido
+    if (typeof id !== 'number' || isNaN(id) || id <= 0) {
+      console.error("Invalid usuario ID for deletion:", id);
+      return Promise.reject(new Error("ID de usuario inválido"));
+    }
+    return deleteData("Usuario/Eliminar", id);
+  },
 };

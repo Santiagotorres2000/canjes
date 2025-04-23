@@ -93,7 +93,14 @@ const Usuarios = () => {
   };
 
   const handleDelete = (usuario: Usuario) => {
-    console.log("Usuario a eliminar:", usuario); // Agregar log para depuración
+    console.log("Usuario a eliminar:", usuario);
+    
+    // Validar que el usuario tenga un ID válido antes de continuar
+    if (!usuario || usuario.idUsuario === undefined || usuario.idUsuario === null) {
+      toast.error("No se puede eliminar: Usuario sin identificador");
+      return;
+    }
+    
     setCurrentUsuario(usuario);
     setIsDeleteDialogOpen(true);
   };
@@ -104,7 +111,7 @@ const Usuarios = () => {
       return;
     }
     
-    // Asegurarse de que idUsuario existe y es un número
+    // Asegurarse de que idUsuario existe y es un número válido
     const idUsuario = currentUsuario.idUsuario;
     if (idUsuario === undefined || idUsuario === null) {
       toast.error("Usuario no identificado (ID no encontrado)");
@@ -112,14 +119,14 @@ const Usuarios = () => {
       return;
     }
   
-    console.log("Intentando eliminar usuario con ID:", idUsuario);
+    console.log("Intentando eliminar usuario con ID:", idUsuario, "Tipo:", typeof idUsuario);
     const usuariosPrevios = [...usuarios];
   
     try {
       // Actualización optimista
       setUsuarios(prev => prev.filter(u => u.idUsuario !== idUsuario));
       
-      const success = await usuariosApi.delete(idUsuario);
+      const success = await usuariosApi.delete(Number(idUsuario));
       
       if (success) {
         toast.success("Usuario eliminado correctamente");
