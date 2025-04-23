@@ -92,12 +92,13 @@ export async function createData<T>(endpoint: string, data: T): Promise<T | null
   }
 }
 
-export async function updateData<T>(endpoint: string, id: number, data: T): Promise<T | null> {
+export async function updateData<T>(endpoint: string, data: T): Promise<T | null> {
   try {
-    const response = await fetchWithLogging(`${API_URL}${endpoint}/${id}`, {
-      method: "PUT",
+    console.log(`Updating data in ${endpoint}:`, data);
+    const response = await fetchWithLogging(`${API_URL}${endpoint}`, {
+      method: "POST", // Cambiado a POST según Swagger
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({...data, idUsuario: id}), // Asegurar envío de ID
+      body: JSON.stringify(data), // Enviar datos completos sin ID en URL
     });
     
     // Manejar diferentes códigos de estado
@@ -105,11 +106,10 @@ export async function updateData<T>(endpoint: string, id: number, data: T): Prom
       throw new Error("El correo electrónico ya está registrado");
     }
     
-    const responseData = response.status === 204 ? data : await response.json();
     toast.success("Registro actualizado exitosamente");
-    return responseData as T;
+    return response as T;
   } catch (error) {
-    console.error(`Update error for ID ${id}:`, error);
+    console.error(`Update error:`, error);
     toast.error(`Error al actualizar: ${(error as Error).message}`);
     return null;
   }
@@ -117,23 +117,15 @@ export async function updateData<T>(endpoint: string, id: number, data: T): Prom
 
 export async function deleteData(endpoint: string, id: number): Promise<boolean> {
   try {
-    const response = await fetchWithLogging(`${API_URL}${endpoint}`, { // Eliminamos /${id} de la URL
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ Id: id }) // Envía el ID en el cuerpo con mayúscula
+    console.log(`Deleting data with ID ${id} from ${endpoint}`);
+    await fetchWithLogging(`${API_URL}${endpoint}?id=${id}`, { 
+      method: "POST" // Cambiado a POST con query parameter según Swagger
     });
-
-    // Verificar estado de la respuesta
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
 
     toast.success("Registro eliminado exitosamente");
     return true;
   } catch (error) {
-    console.error(`Failed to delete ${endpoint}:`, error);
+    console.error(`Failed to delete from ${endpoint}:`, error);
     toast.error(`Error al eliminar registro: ${(error as Error).message}`);
     return false;
   }
