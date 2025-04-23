@@ -1,12 +1,13 @@
 
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Usuario, Localidad, usuariosApi } from "@/lib/api";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 interface UsuariosFormProps {
   isOpen: boolean;
@@ -16,22 +17,25 @@ interface UsuariosFormProps {
   onSuccess: (usuario: Usuario) => void;
 }
 
-const UsuariosForm = ({ isOpen, onClose, currentUsuario, localidades, onSuccess }: UsuariosFormProps) => {
-  const [formData, setFormData] = useState<Usuario>(
-    currentUsuario || {
-      nombre: "",
-      apellidos: "",
-      telefono: "",
-      email: "",
-      direccion: "",
-      rol: "Usuario",
-      idLocalidad: undefined,
-    }
-  );
+export function UsuariosForm({
+  isOpen,
+  onClose,
+  currentUsuario,
+  localidades,
+  onSuccess
+}: UsuariosFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Reset form when dialog opens or user changes
-  React.useEffect(() => {
+  const [formData, setFormData] = useState<Usuario>({
+    nombre: "",
+    apellidos: "",
+    telefono: "",
+    email: "",
+    direccion: "",
+    rol: "Usuario",
+    idLocalidad: undefined,
+  });
+
+  useEffect(() => {
     if (currentUsuario) {
       setFormData({
         nombre: currentUsuario.nombre,
@@ -55,6 +59,44 @@ const UsuariosForm = ({ isOpen, onClose, currentUsuario, localidades, onSuccess 
     }
   }, [currentUsuario, isOpen]);
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (isSubmitting) return;
+      setIsSubmitting(true);
+
+      if (!formData.nombre || !formData.apellidos || !formData.telefono) {
+        toast.error("Complete los campos obligatorios");
+        return;
+      }
+
+      const dataToSubmit = {
+        ...formData,
+        idLocalidad: formData.idLocalidad ? Number(formData.idLocalidad) : undefined,
+      };
+
+      let result;
+      if (currentUsuario?.idUsuario) {
+        result = await usuariosApi.update(currentUsuario.idUsuario, dataToSubmit);
+      } else {
+        result = await usuariosApi.create(dataToSubmit);
+      }
+
+      onSuccess(result);
+      toast.success(
+        currentUsuario 
+          ? "Usuario actualizado exitosamente" 
+          : "Usuario creado exitosamente"
+      );
+      onClose();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(`Error al ${currentUsuario ? "actualizar" : "crear"} el usuario`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -68,63 +110,8 @@ const UsuariosForm = ({ isOpen, onClose, currentUsuario, localidades, onSuccess 
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      // Prevent multiple submissions
-      if (isSubmitting) {
-        return;
-      }
-      
-      setIsSubmitting(true);
-      
-      if (!formData.nombre || !formData.apellidos || !formData.telefono) {
-        toast.error("Por favor complete los campos obligatorios.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Make a copy of the form data to avoid issues with undefined fields
-      const dataToSubmit = { ...formData };
-      
-      // Verify idLocalidad is properly formatted
-      if (dataToSubmit.idLocalidad) {
-        dataToSubmit.idLocalidad = Number(dataToSubmit.idLocalidad);
-      }
-
-      let result;
-      console.log("Processing form submission:", dataToSubmit);
-      
-      if (currentUsuario?.idUsuario) {
-        console.log("Updating user:", currentUsuario.idUsuario);
-        result = await usuariosApi.update(currentUsuario.idUsuario, dataToSubmit);
-        console.log("Update result:", result);
-      } else {
-        console.log("Creating new user with data:", dataToSubmit);
-        result = await usuariosApi.create(dataToSubmit);
-        console.log("Create result:", result);
-      }
-      
-      if (result) {
-        onSuccess(result);
-        onClose();
-        toast.success(currentUsuario ? "Usuario actualizado exitosamente" : "Usuario creado exitosamente");
-      }
-    } catch (error) {
-      console.error("Error in form submission:", error);
-      toast.error(`Error: ${(error as Error).message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        onClose();
-      }
-    }}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -197,23 +184,17 @@ const UsuariosForm = ({ isOpen, onClose, currentUsuario, localidades, onSuccess 
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background">
-                    {localidades && localidades.length > 0 ? (
-                      localidades
-                        .filter(localidad => localidad.idLocalidad != null)
-                        .map((localidad) => (
-                          <SelectItem
-                            key={localidad.idLocalidad}
-                            value={localidad.idLocalidad!.toString()}
-                          >
-                            {localidad.nombre}
-                          </SelectItem>
-                        ))
-                    ) : (
-                      <SelectItem value="" disabled>
-                        No hay localidades disponibles
-                      </SelectItem>
-                    )}
+                  <SelectContent>
+                    {localidades
+                      .filter((l) => l.idLocalidad !== undefined && l.idLocalidad !== null)
+                      .map((localidad) => (
+                        <SelectItem
+                          key={localidad.idLocalidad}
+                          value={localidad.idLocalidad.toString()}
+                        >
+                          {localidad.nombre}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -227,7 +208,7 @@ const UsuariosForm = ({ isOpen, onClose, currentUsuario, localidades, onSuccess 
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione un rol" />
                 </SelectTrigger>
-                <SelectContent className="bg-background">
+                <SelectContent>
                   <SelectItem value="Usuario">Usuario</SelectItem>
                   <SelectItem value="Administrador">Administrador</SelectItem>
                 </SelectContent>
@@ -250,6 +231,4 @@ const UsuariosForm = ({ isOpen, onClose, currentUsuario, localidades, onSuccess 
       </DialogContent>
     </Dialog>
   );
-};
-
-export default UsuariosForm;
+}

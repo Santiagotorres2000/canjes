@@ -5,33 +5,18 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Usuario, usuariosApi, localidadesApi, Localidad, RawLocalidad } from "@/lib/api";
 import { Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { toast } from "sonner";
-import { DialogDescription } from "@radix-ui/react-dialog";
+import { UsuariosForm } from "@/components/usuarios/UsuariosForm";
+import { DeleteUsuarioDialog } from "@/components/usuarios/DeleteUsuarioDialog";
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [localidades, setLocalidades] = useState<Localidad[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentUsuario, setCurrentUsuario] = useState<Usuario | null>(null);
-  const [formData, setFormData] = useState<Usuario>({
-    nombre: "",
-    apellidos: "",
-    telefono: "",
-    email: "",
-    direccion: "",
-    rol: "Usuario",
-    idLocalidad: undefined,
-  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,9 +31,8 @@ const Usuarios = () => {
         console.log("Fetching localidades data...");
         const localidadesData = await localidadesApi.getAll();
         console.log("Localidades data received (raw):", localidadesData);
-        // Normalizamos para asegurar que cada objeto tenga idLocalidad (con "L" mayúscula)
         const normalizedLocalidades = (localidadesData as RawLocalidad[]).map((l) => ({
-          idLocalidad: l.idLocalidad ?? l.idlocalidad, // Usa idLocalidad si existe, sino idlocalidad
+          idLocalidad: l.idLocalidad ?? l.idlocalidad,
           nombre: l.nombre,
         }));
         setLocalidades(normalizedLocalidades);
@@ -66,36 +50,15 @@ const Usuarios = () => {
 
   const handleAdd = () => {
     setCurrentUsuario(null);
-    setFormData({
-      nombre: "",
-      apellidos: "",
-      telefono: "",
-      email: "",
-      direccion: "",
-      rol: "Usuario",
-      idLocalidad: undefined,
-    });
-    setIsDialogOpen(true);
+    setIsFormDialogOpen(true);
   };
 
   const handleEdit = (usuario: Usuario) => {
     setCurrentUsuario(usuario);
-    setFormData({
-      nombre: usuario.nombre,
-      apellidos: usuario.apellidos,
-      telefono: usuario.telefono,
-      email: usuario.email || "",
-      direccion: usuario.direccion || "",
-      rol: usuario.rol,
-      idLocalidad: usuario.idLocalidad,
-    });
-    setIsDialogOpen(true);
+    setIsFormDialogOpen(true);
   };
 
   const handleDelete = (usuario: Usuario) => {
-    console.log("Usuario a eliminar:", usuario);
-    
-    // Validar que el usuario tenga un ID válido antes de continuar
     if (!usuario || usuario.idUsuario === undefined || usuario.idUsuario === null) {
       toast.error("No se puede eliminar: Usuario sin identificador");
       return;
@@ -105,117 +68,21 @@ const Usuarios = () => {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = async () => {
-    if (!currentUsuario) {
-      toast.error("Usuario no seleccionado");
-      return;
-    }
-    
-    // Asegurarse de que idUsuario existe y es un número válido
-    const idUsuario = currentUsuario.idUsuario;
-    if (idUsuario === undefined || idUsuario === null) {
-      toast.error("Usuario no identificado (ID no encontrado)");
-      setIsDeleteDialogOpen(false);
-      return;
-    }
-  
-    console.log("Intentando eliminar usuario con ID:", idUsuario, "Tipo:", typeof idUsuario);
-    const usuariosPrevios = [...usuarios];
-  
-    try {
-      // Actualización optimista
-      setUsuarios(prev => prev.filter(u => u.idUsuario !== idUsuario));
-      
-      const success = await usuariosApi.delete(Number(idUsuario));
-      
-      if (success) {
-        toast.success("Usuario eliminado correctamente");
-      } else {
-        // Si la API devuelve false, restauramos el estado
-        setUsuarios(usuariosPrevios);
-        toast.error("No se pudo eliminar el usuario");
-      }
-  
-    } catch (error) {
-      // Restaurar estado anterior
-      setUsuarios(usuariosPrevios);
-  
-      console.error("Error en eliminación:", error);
-      toast.error(
-        (error as Error).message.includes("404") 
-          ? "Usuario no encontrado en el servidor" 
-          : `Error al eliminar: ${(error as Error).message}`
-      );
-    } finally {
-      setIsDeleteDialogOpen(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-        if (isSubmitting) return;
-        setIsSubmitting(true);
-
-        // Validar campos obligatorios
-        if (!formData.nombre || !formData.apellidos || !formData.telefono) {
-            toast.error("Complete los campos obligatorios");
-            return;
-        }
-
-        // Preparar datos para enviar
-        const dataToSubmit = {
-            ...formData,
-            idLocalidad: formData.idLocalidad ? Number(formData.idLocalidad) : undefined,
-        };
-
-        if (currentUsuario?.idUsuario) {
-            // Modo edición: enviar PUT con ID
-            const updatedUser = await usuariosApi.update(currentUsuario.idUsuario, dataToSubmit);
-            
-            // Actualizar estado local con el usuario modificado
-            setUsuarios(prev => 
-                prev.map(u => 
-                    u.idUsuario === currentUsuario.idUsuario 
-                    ? { ...u, ...updatedUser } 
-                    : u
-                )
-            );
-            toast.success("Usuario actualizado");
-        } else {
-            // Modo creación: enviar POST
-            const newUser = await usuariosApi.create(dataToSubmit);
-            setUsuarios(prev => [...prev, newUser]);
-            toast.success("Usuario creado");
-        }
-
-        setIsDialogOpen(false);
-    } catch (error) {
-        console.error("Error:", error);
-        toast.error("Error al procesar la solicitud");
-    } finally {
-        setIsSubmitting(false);
-    }
-};
-  
-
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    console.log("Select change:", name, value);
-
-    if (name === "idLocalidad") {
-      setFormData(prev => ({ ...prev, [name]: parseInt(value) }));
+  const handleUsuarioSaved = (usuario: Usuario) => {
+    if (currentUsuario?.idUsuario) {
+      setUsuarios(prev => prev.map(u => 
+        u.idUsuario === usuario.idUsuario ? usuario : u
+      ));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setUsuarios(prev => [...prev, usuario]);
     }
+    setIsFormDialogOpen(false);
   };
 
-  // Define columns for data table
+  const handleUsuarioDeleted = (deletedId: number) => {
+    setUsuarios(prev => prev.filter(u => u.idUsuario !== deletedId));
+  };
+
   const columns = [
     {
       key: "nombre",
@@ -246,20 +113,6 @@ const Usuarios = () => {
       cell: (usuario: Usuario) => usuario.rol,
     },
   ];
-
-  const closeDialog = () => {
-    setIsDialogOpen(false);
-    // Reset form state
-    setFormData({
-      nombre: "",
-      apellidos: "",
-      telefono: "",
-      email: "",
-      direccion: "",
-      rol: "Usuario",
-      idLocalidad: undefined,
-    });
-  };
 
   return (
     <Layout>
@@ -297,138 +150,19 @@ const Usuarios = () => {
         />
       )}
 
-      {/* Form Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => {
-        if (!open) {
-          closeDialog();
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {currentUsuario ? "Editar Usuario" : "Crear Nuevo Usuario"}
-          </DialogTitle>
-          <DialogDescription>
-            Complete los campos requeridos para {currentUsuario ? "editar" : "crear"} el usuario.
-          </DialogDescription>
-        </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="nombre">Nombre*</Label>
-                  <Input
-                    id="nombre"
-                    name="nombre"
-                    value={formData.nombre}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="apellidos">Apellidos*</Label>
-                  <Input
-                    id="apellidos"
-                    name="apellidos"
-                    value={formData.apellidos}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="telefono">Teléfono*</Label>
-                <Input
-                  id="telefono"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  type="email"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="direccion">Dirección</Label>
-                  <Input
-                    id="direccion"
-                    name="direccion"
-                    value={formData.direccion}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="localidad">Localidad</Label>
-                  <Select
-  value={formData.idLocalidad?.toString() || ""}
-  onValueChange={(value) => handleSelectChange("idLocalidad", value)}
->
-  <SelectTrigger>
-    <SelectValue placeholder="Seleccione" />
-  </SelectTrigger>
-  <SelectContent>
-    {localidades
-      .filter((l) => l.idLocalidad !== undefined && l.idLocalidad !== null)
-      .map((localidad) => (
-        <SelectItem
-          key={localidad.idLocalidad}
-          value={localidad.idLocalidad.toString()}
-        >
-          {localidad.nombre}
-        </SelectItem>
-      ))}
-  </SelectContent>
-</Select>
-                </div>
-              </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="rol">Rol*</Label>
-                <Select
-                  value={formData.rol}
-                  onValueChange={(value) => handleSelectChange("rol", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione un rol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Usuario">Usuario</SelectItem>
-                    <SelectItem value="Administrador">Administrador</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={closeDialog}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Guardando..." : "Guardar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <UsuariosForm
+        isOpen={isFormDialogOpen}
+        onClose={() => setIsFormDialogOpen(false)}
+        currentUsuario={currentUsuario}
+        localidades={localidades}
+        onSuccess={handleUsuarioSaved}
+      />
 
-      {/* Confirm Delete Dialog */}
-      <ConfirmDialog
+      <DeleteUsuarioDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={confirmDelete}
-        title="Confirmar Eliminación"
-        description={`¿Está seguro que desea eliminar al usuario ${currentUsuario?.nombre} ${currentUsuario?.apellidos}?`}
+        usuario={currentUsuario}
+        onSuccess={handleUsuarioDeleted}
       />
     </Layout>
   );
