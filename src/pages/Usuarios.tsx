@@ -1,13 +1,12 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { PageHeader } from "@/components/ui/page-header";
-import { DataTable } from "@/components/ui/data-table";
 import { Usuario, usuariosApi, localidadesApi, Localidad, RawLocalidad } from "@/lib/api";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { UsuariosForm } from "@/components/usuarios/UsuariosForm";
 import { DeleteUsuarioDialog } from "@/components/usuarios/DeleteUsuarioDialog";
+import UsuariosTable from "@/components/usuarios/UsuariosTable";
 
 const Usuarios = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -126,29 +125,15 @@ const Usuarios = () => {
         }}
       />
 
-      {isLoading ? (
-        <div className="flex justify-center items-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <span className="ml-2">Cargando datos...</span>
-        </div>
-      ) : error ? (
-        <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-          {error}
-        </div>
-      ) : (
-        <DataTable
-          data={usuarios}
-          columns={columns}
-          onAdd={handleAdd}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          getItemId={(usuario) => 
-            usuario.idUsuario?.toString() || `temp-${Math.random().toString(36).substr(2, 9)}`
-          }
-          title="Usuarios"
-          addButtonText="Nuevo Usuario"
-        />
-      )}
+      <UsuariosTable
+        usuarios={usuarios}
+        localidades={localidades}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        isLoading={isLoading}
+        error={error}
+      />
 
       <UsuariosForm
         isOpen={isFormDialogOpen}

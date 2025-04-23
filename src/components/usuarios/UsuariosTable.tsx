@@ -26,6 +26,11 @@ const UsuariosTable = ({
   // Define columns for data table
   const columns = [
     {
+      key: "idUsuario",
+      header: "ID",
+      cell: (usuario: Usuario) => usuario.idUsuario || "N/A",
+    },
+    {
       key: "nombre",
       header: "Nombre",
       cell: (usuario: Usuario) => `${usuario.nombre} ${usuario.apellidos}`,
