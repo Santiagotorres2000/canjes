@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 const Canjes = () => {
+  const [searchQuery, setSearchQuery] = useState ("");
   const [canjes, setCanjes] = useState<CanjePuntos[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -54,6 +55,15 @@ const Canjes = () => {
 
     fetchData();
   }, []);
+  const filteredCanjes = canjes.filter((canje) => {
+    const usuario = usuarios.find((u) => u.idUsuario === canje.idUsuario);
+    const nombreUsuario = usuario ? `${usuario.nombre} ${usuario.apellidos}`.toLowerCase() : "";
+    const tienda = canje.tienda.toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    return nombreUsuario.includes(query) || tienda.includes(query);
+  });
+
 
   const handleAdd = () => {
     setCurrentCanje(null);
@@ -174,9 +184,9 @@ const Canjes = () => {
         title="Gestión de Canjes" 
         description="Administre los canjes de puntos del sistema"
         action={{
-          label: "Nuevo Canje",
+          label: "➕ Nuevo Canje",
           onClick: handleAdd,
-          icon: <Plus size={16} />,
+          icon: <Plus size={20} />,
         }}
       />
 
@@ -190,17 +200,19 @@ const Canjes = () => {
           {error}
         </div>
       ) : (
+        <>
+       <div className="bg-white rounded-xl shadow-md p-6 mt-6">
         <DataTable
-          data={canjes}
-          columns={columns}
-          onAdd={handleAdd}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          getItemId={(canje) => canje.idCanje || 0}
-          title="Canjes"
-          addButtonText="Nuevo Canje"
+        data={filteredCanjes}
+        columns={columns}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        getItemId={(canje)=>canje.idCanje || 0 }
+        title="Canjes"
+        addButtonText="Nuevo Canje"
         />
-      )}
+       </div>
 
       {/* Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -272,7 +284,10 @@ const Canjes = () => {
         onConfirm={confirmDelete}
         title="Confirmar Eliminación"
         description={`¿Está seguro que desea eliminar este canje?`}
+        
       />
+      </>
+      )}
     </Layout>
   );
 };
